@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EHR View — Healthcare BCCA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>body{background:#f0f4f8;} .card{border:none;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.vital-badge{background:#ecfdf5;color:#065f46;border-radius:8px;padding:8px 16px;font-weight:600;}</style>
+</head>
+<body>
+<nav class="navbar navbar-dark" style="background:#065f46">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/doctor/dashboard"><i class="fas fa-stethoscope me-2"></i>Doctor Portal</a>
+    <a href="/doctor/dashboard" class="btn btn-outline-light btn-sm">Back</a>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card p-5">
+        <div class="d-flex align-items-center mb-4">
+          <i class="fas fa-file-medical text-success fa-2x me-3"></i>
+          <div>
+            <h4 class="fw-bold mb-0">Decrypted EHR Record</h4>
+            <small class="text-muted">Algorithm 7B: m_i = c_i ⊕ H₁(y · Q_{i,k})</small>
+          </div>
+          {% if decrypted %}
+          <span class="badge bg-success ms-auto fs-6">Decrypted ✓</span>
+          {% endif %}
+        </div>
+
+        <div class="alert alert-success mb-4">
+          <i class="fas fa-shield-alt me-2"></i>
+          EHR decrypted successfully using doctor's private key y. Access logged on blockchain.
+        </div>
+
+        {% if ehr %}
+        <div class="row g-3">
+          {% if ehr.vitals %}
+          <div class="col-12">
+            <h6 class="fw-bold text-muted text-uppercase small">Vital Signs</h6>
+            <div class="vital-badge">
+              <i class="fas fa-heartbeat text-danger me-2"></i>{{ ehr.vitals }}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if ehr.notes %}
+          <div class="col-12 mt-3">
+            <h6 class="fw-bold text-muted text-uppercase small">Clinical Notes</h6>
+            <div class="card p-3 bg-light">{{ ehr.notes }}</div>
+          </div>
+          {% endif %}
+
+          {% if ehr.file_name %}
+          <div class="col-12 mt-3">
+            <h6 class="fw-bold text-muted text-uppercase small">Attached File</h6>
+            <div class="alert alert-info">
+              <i class="fas fa-paperclip me-2"></i>{{ ehr.file_name }}
+              <span class="text-muted small ms-2">(Embedded in EHR payload)</span>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-md-6 mt-2">
+            <div class="text-muted small fw-bold">Patient Pseudonym</div>
+            <code class="small">{{ ehr.patient[:24] }}...</code>
+          </div>
+          <div class="col-md-6 mt-2">
+            <div class="text-muted small fw-bold">Record Timestamp</div>
+            <code class="small">{{ ehr.timestamp }}</code>
+          </div>
+        </div>
+
+        <div class="d-flex gap-3 mt-4">
+          <a href="/doctor/dashboard" class="btn btn-outline-secondary flex-fill">Back to Dashboard</a>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">No EHR data to display.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

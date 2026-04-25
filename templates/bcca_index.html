@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthcare BCCA — Secure EHR Authentication</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  body { background:#f0f4f8; font-family:'Segoe UI',sans-serif; }
+  .hero { background:linear-gradient(135deg,#1a6fc4,#0d4f8c); color:#fff; padding:70px 0; }
+  .feature-card { border:none; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.1);
+                  transition:transform .2s; }
+  .feature-card:hover { transform:translateY(-5px); }
+  .algo-badge { background:#e8f0fe; color:#1a6fc4; border-radius:6px;
+                font-size:.75rem; padding:2px 8px; font-weight:600; }
+  .chain-badge-hist { background:#d1fae5; color:#065f46; }
+  .chain-badge-evid { background:#fef3c7; color:#92400e; }
+  .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .dot-green { background:#22c55e; }
+  .dot-red   { background:#ef4444; }
+  .navbar { background:#0d4f8c !important; }
+</style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/"><i class="fas fa-heartbeat me-2"></i>Healthcare BCCA</a>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/login"    class="btn btn-outline-light btn-sm">Login</a>
+      <a href="/register" class="btn btn-light btn-sm text-primary fw-bold">Register</a>
+      <a href="/ha/login" class="btn btn-warning btn-sm">HA Admin</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero text-center">
+  <div class="container">
+    <h1 class="display-5 fw-bold mb-3">
+      <i class="fas fa-shield-alt me-2"></i>Blockchain-Based Certificateless<br>
+      Conditional Anonymous Authentication
+    </h1>
+    <p class="lead mb-4">Secure EHR Sharing for Healthcare IoT — Zero EC Multiplications on Patient Devices</p>
+    <div class="d-flex justify-content-center gap-3 mb-4">
+      <span class="badge bg-light text-primary fs-6 px-3 py-2">
+        <i class="fas fa-circle-check me-1"></i>Mutual Authentication
+      </span>
+      <span class="badge bg-light text-primary fs-6 px-3 py-2">
+        <i class="fas fa-user-secret me-1"></i>Anonymous Identity
+      </span>
+      <span class="badge bg-light text-primary fs-6 px-3 py-2">
+        <i class="fas fa-link me-1"></i>Dual Blockchain
+      </span>
+    </div>
+    <div class="d-flex justify-content-center gap-3">
+      <a href="/register?role=PATIENT" class="btn btn-light btn-lg text-primary fw-bold">
+        <i class="fas fa-user-injured me-2"></i>Patient Portal
+      </a>
+      <a href="/register?role=DOCTOR" class="btn btn-outline-light btn-lg fw-bold">
+        <i class="fas fa-user-md me-2"></i>Doctor Portal
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- System Status -->
+<div class="container mt-4">
+  <div class="alert {% if params_ready %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center">
+    <span class="status-dot {% if params_ready %}dot-green{% else %}dot-red{% endif %} me-2"></span>
+    {% if params_ready %}
+      <strong>System Ready:</strong>&nbsp;HA parameters are initialised. Patients and doctors can register.
+    {% else %}
+      <strong>System Not Initialised:</strong>&nbsp;Hospital Admin must run
+      <a href="/ha/login" class="alert-link">Setup</a> first.
+    {% endif %}
+  </div>
+</div>
+
+<!-- Algorithms Overview -->
+<div class="container my-5">
+  <h2 class="fw-bold text-center mb-4">10 Algorithms — Healthcare EHR Scheme</h2>
+  <div class="row g-4">
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 1</span>
+        <h5 class="fw-bold"><i class="fas fa-cog text-primary me-2"></i>System Setup</h5>
+        <p class="text-muted small">HA generates CLA-split keys: P_pub, P_pub1, P_pub2 and doctor decrypt key y.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 2</span>
+        <h5 class="fw-bold"><i class="fas fa-user-plus text-success me-2"></i>Registration</h5>
+        <p class="text-muted small">Patient/Doctor computes α_i = H₁(DOB, SA, OD). No biometric hardware needed.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 3</span>
+        <h5 class="fw-bold"><i class="fas fa-key text-warning me-2"></i>Partial Key Extraction</h5>
+        <p class="text-muted small">HA issues pseudonym ID_i = Enc(RID ‖ Role) and partial private key psk_i.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 4</span>
+        <h5 class="fw-bold"><i class="fas fa-database text-info me-2"></i>Key Generation</h5>
+        <p class="text-muted small">Precomputes SID/KID sets and encryption set Q/ek. Zero EC multiply on signing.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 5</span>
+        <h5 class="fw-bold"><i class="fas fa-sign-in-alt text-danger me-2"></i>Multi-Factor Login</h5>
+        <p class="text-muted small">Password + DOB + Security Answer. Recovers psk_i = A_i · UPW⁻¹, verifies B_i.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 6</span>
+        <h5 class="fw-bold"><i class="fas fa-file-medical text-primary me-2"></i>EHR Sign & Encrypt</h5>
+        <p class="text-muted small">c_i = m_i ⊕ ek_k. σ_i = psk + h₂·SID + h₃·x. <strong>ZERO EC multiplications!</strong></p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 7</span>
+        <h5 class="fw-bold"><i class="fas fa-check-circle text-success me-2"></i>Verify & Decrypt</h5>
+        <p class="text-muted small">Node verifies σ_i·G = gpk + h₁·Ppub + h₂·KID + h₃·upk. Doctor decrypts m_i = c_i ⊕ H₁(y·Q_k).</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithm 8</span>
+        <h5 class="fw-bold"><i class="fas fa-handshake text-warning me-2"></i>Mutual Authentication</h5>
+        <p class="text-muted small">ECDH session key K_ab. Role-based access: only DOCTOR role can decrypt EHR.</p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4 h-100">
+        <span class="algo-badge mb-2">Algorithms 9 & 10</span>
+        <h5 class="fw-bold"><i class="fas fa-ban text-danger me-2"></i>Revocation & Evidence</h5>
+        <p class="text-muted small">Chameleon Hash: CH_i = (ζ·ck + H₁(j,cred,HK))·G. HA updates evidence without changing block hash.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Dual Chain -->
+<div class="container mb-5">
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card feature-card p-4 h-100 border-start border-success border-4">
+        <span class="algo-badge chain-badge-hist mb-2">Historical Chain</span>
+        <h5 class="fw-bold"><i class="fas fa-history text-success me-2"></i>Immutable EHR Audit Log</h5>
+        <p class="text-muted">Stores every verified EHR upload. Non-repudiation for patients and audit compliance (HIPAA / GDPR).</p>
+        <a href="/audit_log" class="btn btn-outline-success btn-sm">View Audit Log</a>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card feature-card p-4 h-100 border-start border-warning border-4">
+        <span class="algo-badge chain-badge-evid mb-2">Evidence Chain</span>
+        <h5 class="fw-bold"><i class="fas fa-gavel text-warning me-2"></i>Modifiable Revocation Evidence</h5>
+        <p class="text-muted">Chameleon Hash allows HA to correct false evidence without creating a new block. Trapdoor known only to HA.</p>
+        <a href="/evidence_chain" class="btn btn-outline-warning btn-sm">View Evidence Chain</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-dark text-white text-center py-3">
+  <small>Healthcare BCCA — IEEE Systems Journal, Vol. 18, No. 1, March 2024 | Adapted for Healthcare IoT</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

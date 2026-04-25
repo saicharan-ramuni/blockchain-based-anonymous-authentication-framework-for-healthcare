@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HA Dashboard — Healthcare BCCA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body{background:#f0f4f8;}
+.sidebar{background:#1e3a5f;min-height:100vh;padding:24px 16px;color:#fff;}
+.sidebar a{color:rgba(255,255,255,.8);text-decoration:none;display:block;padding:10px 14px;
+           border-radius:8px;margin-bottom:4px;transition:.2s;}
+.sidebar a:hover,.sidebar a.active{background:rgba(255,255,255,.15);color:#fff;}
+.card{border:none;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.param-row{background:#f8fafc;border-radius:8px;padding:8px 14px;margin-bottom:6px;
+           font-family:monospace;font-size:.78rem;word-break:break-all;}
+.role-patient{background:#dbeafe;color:#1e40af;border-radius:20px;padding:2px 10px;font-size:.75rem;}
+.role-doctor{background:#d1fae5;color:#065f46;border-radius:20px;padding:2px 10px;font-size:.75rem;}
+.revoked-badge{background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 10px;font-size:.75rem;}
+</style>
+</head>
+<body>
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar" style="width:240px;min-width:240px">
+    <div class="text-center mb-4">
+      <i class="fas fa-hospital fa-2x mb-2"></i>
+      <div class="fw-bold">Hospital Admin</div>
+      <small style="color:rgba(255,255,255,.5)">Trusted Authority</small>
+    </div>
+    <a href="/ha/dashboard" class="active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+    <a href="#setup" data-bs-toggle="collapse"><i class="fas fa-cog me-2"></i>Algorithm 1: Setup</a>
+    <a href="/ha/extract_key"><i class="fas fa-key me-2"></i>Algorithm 3: Extract Key</a>
+    <a href="#revoke" data-bs-toggle="collapse"><i class="fas fa-ban me-2"></i>Algorithm 9: Revoke</a>
+    <a href="#modify" data-bs-toggle="collapse"><i class="fas fa-edit me-2"></i>Algorithm 10: Modify</a>
+    <a href="/registry"><i class="fas fa-users me-2"></i>User Registry</a>
+    <a href="/evidence_chain"><i class="fas fa-link me-2"></i>Evidence Chain</a>
+    <a href="/audit_log"><i class="fas fa-history me-2"></i>Audit Log</a>
+    <hr style="border-color:rgba(255,255,255,.2)">
+    <a href="/logout" class="text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-grow-1 p-4">
+    <h4 class="fw-bold mb-4"><i class="fas fa-hospital text-primary me-2"></i>Hospital Admin Dashboard</h4>
+
+    {% if msg %}
+    <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>{{ msg }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-primary border-4">
+          <div class="text-muted small">Registered Users</div>
+          <div class="fs-3 fw-bold text-primary">{{ users|length }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-success border-4">
+          <div class="text-muted small">EHR Records</div>
+          <div class="fs-3 fw-bold text-success">{{ ehr_count }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-danger border-4">
+          <div class="text-muted small">Revoked Users</div>
+          <div class="fs-3 fw-bold text-danger">{{ evidence|length }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-warning border-4">
+          <div class="text-muted small">System Status</div>
+          <div class="fs-5 fw-bold {% if params %}text-success{% else %}text-danger{% endif %}">
+            {% if params %}<i class="fas fa-check-circle"></i> Ready{% else %}<i class="fas fa-times-circle"></i> Not Init{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Algorithm 1: Setup -->
+    <div class="card p-4 mb-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-cog text-primary me-2"></i>Algorithm 1: System Setup</h5>
+      {% if params %}
+      <div class="alert alert-success mb-3">System parameters already initialised.</div>
+      <div class="param-row"><strong>P_pub:</strong> {{ params.Ppub }}</div>
+      <div class="param-row"><strong>P_pub1 (H₂ domain):</strong> {{ params.Ppub1 }}</div>
+      <div class="param-row"><strong>P_pub2 (H₃ domain):</strong> {{ params.Ppub2 }}</div>
+      <div class="param-row"><strong>dpk (doctor decrypt):</strong> {{ params.dpk }}</div>
+      {% else %}
+      <p class="text-muted">No system parameters found. Run Setup to initialise.</p>
+      <form method="POST" action="/ha/setup">
+        <button type="submit" class="btn btn-primary fw-bold">
+          <i class="fas fa-play me-2"></i>Run Algorithm 1: Setup
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Algorithm 9: Revoke -->
+    <div class="card p-4 mb-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-ban text-danger me-2"></i>Algorithm 9: Revoke User</h5>
+      <form method="POST" action="/ha/revoke" class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">User Pseudonym ID</label>
+          <select class="form-select" name="pseudo_id">
+            {% for uid, u in users.items() %}
+            {% if not u.revoked %}
+            <option value="{{ uid }}">{{ uid[:30] }}... ({{ u.role }})</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Evidence / Reason</label>
+          <input type="text" class="form-control" name="evidence" placeholder="Unauthorized EHR access on..." required>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-danger fw-bold">
+            <i class="fas fa-ban me-2"></i>Revoke User & Add to Evidence Chain
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Algorithm 10: Modify Evidence -->
+    <div class="card p-4 mb-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-edit text-warning me-2"></i>Algorithm 10: Modify Evidence</h5>
+      <div class="alert alert-info small mb-3">
+        <i class="fas fa-info-circle me-2"></i>
+        Chameleon Hash ensures the block hash <strong>CH_i remains unchanged</strong>
+        while evidence content is updated. Only HA can do this via trapdoor ck_i.
+      </div>
+      <form method="POST" action="/ha/modify_evidence" class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Pseudonym ID (revoked user)</label>
+          <select class="form-select" name="pseudo_id">
+            {% for e in evidence %}
+            <option value="{{ e.pseudo_id }}">{{ e.pseudo_id[:30] }}...</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">New Evidence (cred'_i)</label>
+          <input type="text" class="form-control" name="new_evidence"
+                 placeholder="Updated evidence description..." required>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-warning fw-bold">
+            <i class="fas fa-sync me-2"></i>Modify Evidence (Block Hash Unchanged)
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- User Registry -->
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-users text-info me-2"></i>Registered Users</h5>
+      {% if users %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr><th>Pseudonym</th><th>Role</th><th>Status</th><th>Public Key (upk)</th></tr>
+          </thead>
+          <tbody>
+          {% for uid, u in users.items() %}
+          <tr>
+            <td><small class="font-monospace">{{ uid[:22] }}...</small></td>
+            <td>
+              {% if u.role == 'PATIENT' %}
+              <span class="role-patient"><i class="fas fa-user-injured me-1"></i>Patient</span>
+              {% else %}
+              <span class="role-doctor"><i class="fas fa-user-md me-1"></i>Doctor</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.revoked %}
+              <span class="revoked-badge"><i class="fas fa-ban me-1"></i>Revoked</span>
+              {% else %}
+              <span class="badge bg-success">Active</span>
+              {% endif %}
+            </td>
+            <td><small class="font-monospace text-muted">{{ u.upk[:20] }}...</small></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted">No users registered yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Doctor Dashboard — Healthcare BCCA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body{background:#f0f4f8;}
+.sidebar{background:#065f46;min-height:100vh;padding:24px 16px;color:#fff;}
+.sidebar a{color:rgba(255,255,255,.8);text-decoration:none;display:block;padding:10px 14px;
+           border-radius:8px;margin-bottom:4px;transition:.2s;}
+.sidebar a:hover,.sidebar a.active{background:rgba(255,255,255,.15);color:#fff;}
+.card{border:none;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.modal-backdrop{background:#000;}
+</style>
+</head>
+<body>
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar" style="width:240px;min-width:240px">
+    <div class="text-center mb-4">
+      <i class="fas fa-user-md fa-2x mb-2"></i>
+      <div class="fw-bold">Doctor Portal</div>
+      <small style="color:rgba(255,255,255,.6)">{{ keys.ID_i[:16] }}...</small>
+    </div>
+    <a href="/doctor/dashboard" class="active"><i class="fas fa-home me-2"></i>Dashboard</a>
+    <a href="/auth/doctor_verify" data-bs-toggle="modal" data-bs-target="#authModal">
+      <i class="fas fa-handshake me-2"></i>Verify Patient</a>
+    <a href="/node/batch_verify" onclick="batchVerify(event)"><i class="fas fa-layer-group me-2"></i>Batch Verify</a>
+    <a href="/registry"><i class="fas fa-users me-2"></i>User Registry</a>
+    <a href="/audit_log"><i class="fas fa-history me-2"></i>Audit Log</a>
+    <hr style="border-color:rgba(255,255,255,.2)">
+    <a href="/logout" class="text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-grow-1 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="fas fa-stethoscope text-success me-2"></i>Doctor Dashboard</h4>
+        <small class="text-muted">Pseudonym: {{ keys.ID_i[:24] }}... | Decrypt Key y: ✓</small>
+      </div>
+      <div>
+        <button class="btn btn-outline-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#batchModal">
+          <i class="fas fa-layer-group me-2"></i>Batch Verify All
+        </button>
+      </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <!-- EHR Records Table -->
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-file-medical text-success me-2"></i>Patient EHR Records</h5>
+      {% if ehrs %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Patient Pseudonym</th>
+              <th>Timestamp</th>
+              <th>Block Hash</th>
+              <th>Verification</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for e in ehrs %}
+            <tr>
+              <td><small class="font-monospace">{{ e.ID_i[:20] }}...</small></td>
+              <td><small>{{ e.T_i }}</small></td>
+              <td><small class="font-monospace text-muted">{{ e.get('block_hash','—')[:18] }}...</small></td>
+              <td>
+                {% if e.get('verified') %}
+                  <span class="badge bg-success">Verified ✓</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Unverified</span>
+                {% endif %}
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-success"
+                        data-bs-toggle="modal" data-bs-target="#decryptModal"
+                        data-ci="{{ e.c_i }}"
+                        data-qk="{{ e.Q_k }}"
+                        data-pid="{{ e.ID_i }}"
+                        data-bh="{{ e.get('block_hash','') }}">
+                  <i class="fas fa-unlock-alt"></i> Decrypt
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-file-medical fa-3x mb-3 opacity-25"></i>
+        <p>No EHR records available yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Decrypt Modal -->
+<div class="modal fade" id="decryptModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-unlock-alt text-success me-2"></i>Algorithm 7B: Decrypt EHR</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info small">
+          m_i = c_i ⊕ H₁(y · Q_{i,k}) — using doctor's decrypt key y
+        </div>
+        <form method="POST" action="/doctor/decrypt_ehr">
+          <input type="hidden" name="c_i" id="modalCi">
+          <input type="hidden" name="Q_k" id="modalQk">
+          <input type="hidden" name="patient_pid" id="modalPid">
+          <input type="hidden" name="block_hash" id="modalBh">
+          <button type="submit" class="btn btn-success w-100 fw-bold">
+            <i class="fas fa-file-medical me-2"></i>Decrypt & View EHR
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Verify Modal -->
+<div class="modal fade" id="batchModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>Batch Verification (Algorithm 7C)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted">Verify all {{ ehrs|length }} EHR records simultaneously.</p>
+        <div class="alert alert-info small">
+          (Σ λ_i · σ_i) · G = Σ λ_i · gpk_i + (Σ λ_i·h₁_i) · P_pub
+          + Σ λ_i·h₂_i · KID_{i,k} + Σ λ_i·h₃_i · upk_i
+        </div>
+        <div id="batchResult"></div>
+        <button class="btn btn-primary w-100" onclick="runBatchVerify()">
+          <i class="fas fa-play me-2"></i>Run Batch Verification
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('decryptModal').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  document.getElementById('modalCi').value  = btn.dataset.ci;
+  document.getElementById('modalQk').value  = btn.dataset.qk;
+  document.getElementById('modalPid').value = btn.dataset.pid;
+  document.getElementById('modalBh').value  = btn.dataset.bh;
+});
+
+function runBatchVerify() {
+  fetch('/node/batch_verify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({})})
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('batchResult').innerHTML =
+        `<div class="alert alert-${d.valid ? 'success':'danger'} mt-2">
+           <strong>${d.valid ? '✓ VALID':'✗ INVALID'}</strong> — ${d.reason} (${d.count} records)
+         </div>`;
+    }).catch(e => {
+      document.getElementById('batchResult').innerHTML =
+        `<div class="alert alert-warning">Batch verify request failed: ${e}</div>`;
+    });
+}
+</script>
+</body></html>
