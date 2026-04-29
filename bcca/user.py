@@ -16,7 +16,7 @@ import hashlib
 import time
 
 from .ecc_utils import (ECPoint, G, N, rand_scalar, modinv,
-                         H1, H2, H3, xor_encrypt, xor_decrypt)
+                         H1, H2, H3, xor_encrypt, xor_decrypt, mul_G)
 from .params_store import load_params
 
 
@@ -83,7 +83,7 @@ def register(rid: str, password: str, dob: str, security_answer: str,
 # Algorithm 4: Key Generation (full precomputation)
 # ---------------------------------------------------------------------------
 
-PRECOMPUTE_N = 20   # number of precomputed (SID, KID) and (Q, ek) pairs
+PRECOMPUTE_N = 100  # number of precomputed (SID, KID) and (Q, ek) pairs
 
 
 def generate_keys(partial_material: dict, local: dict, n: int = PRECOMPUTE_N) -> dict:
@@ -139,7 +139,7 @@ def generate_keys(partial_material: dict, local: dict, n: int = PRECOMPUTE_N) ->
     for _ in range(n):
         v_j    = rand_scalar()
         sid_j  = (v_j * x_i + base_h) % N
-        kid_j  = sid_j * G
+        kid_j  = mul_G(sid_j)          # fixed-base G table: ~8× faster than sid_j * G
         SID_set.append(str(sid_j))
         KID_set.append(kid_j.to_hex())
 
@@ -149,7 +149,7 @@ def generate_keys(partial_material: dict, local: dict, n: int = PRECOMPUTE_N) ->
     dpk    = params["dpk"]   # doctor's public decrypt key
     for _ in range(n):
         q_j   = rand_scalar()
-        Q_j   = q_j * G
+        Q_j   = mul_G(q_j)             # fixed-base G table: ~8× faster than q_j * G
         ek_j  = H1(q_j * dpk)    # H₁(q_{i,j} · dpk) — encryption key scalar
         Q_set.append(Q_j.to_hex())
         ek_set.append(str(ek_j))

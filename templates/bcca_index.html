@@ -78,86 +78,6 @@
   </div>
 </div>
 
-<!-- Algorithms Overview -->
-<div class="container my-5">
-  <h2 class="fw-bold text-center mb-4">10 Algorithms — Healthcare EHR Scheme</h2>
-  <div class="row g-4">
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 1</span>
-        <h5 class="fw-bold"><i class="fas fa-cog text-primary me-2"></i>System Setup</h5>
-        <p class="text-muted small">HA generates CLA-split keys: P_pub, P_pub1, P_pub2 and doctor decrypt key y.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 2</span>
-        <h5 class="fw-bold"><i class="fas fa-user-plus text-success me-2"></i>Registration</h5>
-        <p class="text-muted small">Patient/Doctor computes α_i = H₁(DOB, SA, OD). No biometric hardware needed.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 3</span>
-        <h5 class="fw-bold"><i class="fas fa-key text-warning me-2"></i>Partial Key Extraction</h5>
-        <p class="text-muted small">HA issues pseudonym ID_i = Enc(RID ‖ Role) and partial private key psk_i.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 4</span>
-        <h5 class="fw-bold"><i class="fas fa-database text-info me-2"></i>Key Generation</h5>
-        <p class="text-muted small">Precomputes SID/KID sets and encryption set Q/ek. Zero EC multiply on signing.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 5</span>
-        <h5 class="fw-bold"><i class="fas fa-sign-in-alt text-danger me-2"></i>Multi-Factor Login</h5>
-        <p class="text-muted small">Password + DOB + Security Answer. Recovers psk_i = A_i · UPW⁻¹, verifies B_i.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 6</span>
-        <h5 class="fw-bold"><i class="fas fa-file-medical text-primary me-2"></i>EHR Sign & Encrypt</h5>
-        <p class="text-muted small">c_i = m_i ⊕ ek_k. σ_i = psk + h₂·SID + h₃·x. <strong>ZERO EC multiplications!</strong></p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 7</span>
-        <h5 class="fw-bold"><i class="fas fa-check-circle text-success me-2"></i>Verify & Decrypt</h5>
-        <p class="text-muted small">Node verifies σ_i·G = gpk + h₁·Ppub + h₂·KID + h₃·upk. Doctor decrypts m_i = c_i ⊕ H₁(y·Q_k).</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithm 8</span>
-        <h5 class="fw-bold"><i class="fas fa-handshake text-warning me-2"></i>Mutual Authentication</h5>
-        <p class="text-muted small">ECDH session key K_ab. Role-based access: only DOCTOR role can decrypt EHR.</p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card feature-card p-4 h-100">
-        <span class="algo-badge mb-2">Algorithms 9 & 10</span>
-        <h5 class="fw-bold"><i class="fas fa-ban text-danger me-2"></i>Revocation & Evidence</h5>
-        <p class="text-muted small">Chameleon Hash: CH_i = (ζ·ck + H₁(j,cred,HK))·G. HA updates evidence without changing block hash.</p>
-      </div>
-    </div>
-
-  </div>
-</div>
-
 <!-- Dual Chain -->
 <div class="container mb-5">
   <div class="row g-4">
@@ -181,9 +101,22 @@
 </div>
 
 <footer class="bg-dark text-white text-center py-3">
-  <small>Healthcare BCCA — IEEE Systems Journal, Vol. 18, No. 1, March 2024 | Adapted for Healthcare IoT</small>
+  <small>Healthcare BCCA</small>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Launcher switch button -->
+<a href="http://localhost:5000" title="Back to Mode Selector"
+   style="position:fixed;bottom:24px;right:24px;z-index:9999;
+          background:#0f2027;color:#fff;border-radius:50px;
+          padding:10px 18px;font-size:.82rem;font-weight:600;
+          text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.4);
+          display:flex;align-items:center;gap:8px;transition:.2s;"
+   onmouseover="this.style.background='#065f46'"
+   onmouseout="this.style.background='#0f2027'">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  Switch Mode
+</a>
 </body>
 </html>

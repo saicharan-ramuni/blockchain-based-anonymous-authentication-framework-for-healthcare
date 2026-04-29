@@ -1,2 +1,0 @@
-python CSP.py
-pause

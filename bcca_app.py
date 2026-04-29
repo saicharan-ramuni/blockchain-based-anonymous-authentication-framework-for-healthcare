@@ -51,42 +51,175 @@ _KEY_STORE: Dict[str, dict] = {}
 # In-memory EHR message store (mirrors what is submitted to blockchain)
 _EHR_MSGS: List[dict] = []
 
+# Pending registration packets waiting for HA to extract partial key (manual flow)
+# key: RID → {upk, RID, UPW, alpha, role}
+_PENDING_REG: Dict[str, dict] = {}
+
+# HA-issued partial keys waiting for user to run key generation (manual flow)
+# key: RID → partial key dict
+_PENDING_PARTIAL: Dict[str, dict] = {}
+
+# RID → pseudo_id mapping for login without pseudonym (one-step registration)
+_RID_TO_PSEUDO: Dict[str, str] = {}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Persistent store helpers  (survive server restart)
+# ──────────────────────────────────────────────────────────────────────────────
+
+_DATA_DIR       = "bcca_data"
+_RID_MAP_FILE   = os.path.join(_DATA_DIR, "rid_map.json")
+_KEY_STORE_FILE = os.path.join(_DATA_DIR, "key_store.json")
+
+os.makedirs(_DATA_DIR, exist_ok=True)
+
+def _load_persistent_stores():
+    """Load RID→pseudo map and key store from disk on startup."""
+    global _RID_TO_PSEUDO, _KEY_STORE
+    if os.path.exists(_RID_MAP_FILE):
+        try:
+            with open(_RID_MAP_FILE, encoding="utf-8") as f:
+                _RID_TO_PSEUDO = json.load(f)
+        except Exception:
+            pass
+    if os.path.exists(_KEY_STORE_FILE):
+        try:
+            with open(_KEY_STORE_FILE, encoding="utf-8") as f:
+                _KEY_STORE = json.load(f)
+        except Exception:
+            pass
+
+def _save_persistent_stores():
+    """Persist RID→pseudo map and key store to disk."""
+    with open(_RID_MAP_FILE,   "w", encoding="utf-8") as f:
+        json.dump(_RID_TO_PSEUDO, f)
+    with open(_KEY_STORE_FILE, "w", encoding="utf-8") as f:
+        json.dump(_KEY_STORE, f)
+
+# Load on import
+_load_persistent_stores()
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Audit log helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+_AUDIT_FILE = os.path.join(_DATA_DIR, "audit_log.json")
+
+def _append_audit(actor: str, action: str, target: str = "", role: str = ""):
+    """Append one entry to the local audit log file."""
+    entry = {
+        "actor"    : actor,
+        "action"   : action,
+        "target"   : target,
+        "role"     : role,
+        "timestamp": int(time.time()),
+    }
+    logs = []
+    if os.path.exists(_AUDIT_FILE):
+        try:
+            with open(_AUDIT_FILE, encoding="utf-8") as f:
+                logs = json.load(f)
+        except Exception:
+            pass
+    logs.append(entry)
+    with open(_AUDIT_FILE, "w", encoding="utf-8") as f:
+        json.dump(logs, f)
+
+def _load_audit() -> list:
+    if not os.path.exists(_AUDIT_FILE):
+        return []
+    try:
+        with open(_AUDIT_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Blockchain helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-BLOCKCHAIN_ADDR   = "http://127.0.0.1:8545"
-BCCA_CONTRACT_ABI = "BCCA.json"          # compiled ABI (truffle build output)
-BCCA_CONTRACT_ADDR = None                # set after deployment
+BLOCKCHAIN_ADDR    = "http://127.0.0.1:8545"
+TRUFFLE_ARTIFACT   = os.path.join("build", "contracts", "BCCA_Healthcare.json")
+ADDR_FILE          = os.path.join("bcca_data", "contract_address.txt")
 
-_w3      = None
-_contract = None
+_w3        = None
+_contract  = None
 
 def _get_web3():
     global _w3
     if _w3 is None:
-        _w3 = Web3(HTTPProvider(BLOCKCHAIN_ADDR))
-        _w3.eth.default_account = _w3.eth.accounts[0]
+        w3 = Web3(HTTPProvider(BLOCKCHAIN_ADDR))
+        # Support both Web3.py v4 (isConnected) and v5/v6 (is_connected)
+        connected = w3.isConnected() if hasattr(w3, 'isConnected') else w3.is_connected()
+        if not connected:
+            return None
+        # Support both v4 (defaultAccount) and v5/v6 (default_account)
+        if hasattr(w3.eth, 'defaultAccount'):
+            w3.eth.defaultAccount = w3.eth.accounts[0]
+        else:
+            w3.eth.default_account = w3.eth.accounts[0]
+        _w3 = w3
     return _w3
 
 def _get_contract():
-    global _contract, BCCA_CONTRACT_ADDR
+    """Auto-load contract from Truffle artifact (address + ABI in one file)."""
+    global _contract
     if _contract is not None:
         return _contract
-    addr_file = os.path.join("bcca_data", "contract_address.txt")
-    if not os.path.exists(addr_file):
-        return None
-    with open(addr_file) as f:
-        BCCA_CONTRACT_ADDR = f.read().strip()
-    abi_path = os.path.join("build", "contracts", "BCCA_Healthcare.json")
-    if not os.path.exists(abi_path):
-        return None
-    with open(abi_path) as f:
-        compiled = json.load(f)
     w3 = _get_web3()
-    _contract = w3.eth.contract(address=BCCA_CONTRACT_ADDR,
-                                 abi=compiled["abi"])
+    if w3 is None:
+        return None
+    # Load Truffle build artifact — contains both ABI and deployed address
+    if not os.path.exists(TRUFFLE_ARTIFACT):
+        return None
+    with open(TRUFFLE_ARTIFACT, encoding='utf-8') as f:
+        artifact = json.load(f)
+    abi = artifact.get("abi")
+    if not abi:
+        return None
+    # Find deployed address — try networks dict first, then saved file
+    address = None
+    networks = artifact.get("networks", {})
+    if networks:
+        # Use the most recently deployed network entry
+        latest = sorted(networks.keys())[-1]
+        address = networks[latest].get("address")
+    if not address and os.path.exists(ADDR_FILE):
+        with open(ADDR_FILE) as f:
+            address = f.read().strip()
+    if not address:
+        return None
+    # Save address for reference
+    os.makedirs("bcca_data", exist_ok=True)
+    with open(ADDR_FILE, "w") as f:
+        f.write(address)
+    _contract = w3.eth.contract(address=address, abi=abi)
+    app.logger.info(f"[Blockchain] Contract loaded at {address}")
     return _contract
+
+def _wait_for_receipt(w3, tx):
+    """Compatible wait for receipt across Web3.py v4/v5/v6."""
+    if hasattr(w3.eth, 'waitForTransactionReceipt'):
+        return w3.eth.waitForTransactionReceipt(tx)
+    return w3.eth.wait_for_transaction_receipt(tx)
+
+def _block_number(w3):
+    """Compatible block number across Web3.py v4/v5/v6."""
+    if hasattr(w3.eth, 'blockNumber'):
+        return w3.eth.blockNumber
+    return w3.eth.block_number
+
+def _blockchain_status():
+    """Return dict with connection status for UI display."""
+    w3 = _get_web3()
+    if w3 is None:
+        return {"connected": False, "address": None, "block": None}
+    c = _get_contract()
+    return {
+        "connected": True,
+        "address"  : c.address if c else None,
+        "block"    : _block_number(w3),
+        "accounts" : len(w3.eth.accounts),
+    }
 
 def _blockchain_register(pseudo_id, gpk, upk, E_i, h1_i, role_int):
     """Call registerUser on BCCA smart contract."""
@@ -95,7 +228,7 @@ def _blockchain_register(pseudo_id, gpk, upk, E_i, h1_i, role_int):
         if c is None:
             return
         tx = c.functions.registerUser(pseudo_id, gpk, upk, E_i, h1_i, role_int).transact()
-        _get_web3().eth.wait_for_transaction_receipt(tx)
+        _wait_for_receipt(_get_web3(), tx)
     except Exception as e:
         app.logger.warning(f"Blockchain registration skipped: {e}")
 
@@ -109,7 +242,7 @@ def _blockchain_store_ehr(msg: dict) -> str:
             msg["ID_i"], msg["sigma_i"], msg["KID_k"],
             msg["c_i"], msg["Q_k"], int(msg["T_i"])
         ).transact()
-        receipt = _get_web3().eth.wait_for_transaction_receipt(tx)
+        receipt = _wait_for_receipt(_get_web3(), tx)
         # Parse EHRUploaded event to get blockHash
         logs = c.events.EHRUploaded().process_receipt(receipt)
         if logs:
@@ -214,26 +347,34 @@ def ha_extract_key():
             _blockchain_register(partial["ID_i"], partial["gpk_i"],
                                   reg["upk"], partial["E_i"],
                                   partial["h1_i"], role_int)
+            # Store partial key for user to auto-retrieve (no copy-paste needed)
+            _PENDING_PARTIAL[reg["RID"]] = partial
+            # Remove from pending queue
+            _PENDING_REG.pop(reg["RID"], None)
             return render_template("bcca_ha_keygen_result.html",
                                    partial=partial)
         except Exception as e:
-            return render_template("bcca_ha_extract.html", error=str(e))
-    return render_template("bcca_ha_extract.html")
+            return render_template("bcca_ha_extract.html",
+                                   error=str(e),
+                                   pending=list(_PENDING_REG.values()))
+    return render_template("bcca_ha_extract.html",
+                           pending=list(_PENDING_REG.values()))
 
 @app.route("/ha/revoke", methods=["GET", "POST"])
 def ha_revoke():
     if session.get("role") != "HA":
         return redirect(url_for("ha_login"))
+    users    = get_all_users()
+    evidence = get_evidence_entries()
+    revoked  = [e for e in evidence]
     if request.method == "POST":
         try:
-            pseudo_id = request.form["pseudo_id"]
-            evidence  = request.form["evidence"]
-            # Fetch E_i from local user store
-            user_rec  = get_user(pseudo_id)
+            pseudo_id  = request.form["pseudo_id"]
+            ev_reason  = request.form["evidence"]
+            user_rec   = get_user(pseudo_id)
             if not user_rec:
                 raise ValueError("User not found in registry.")
-            entry = revoke_user_access(pseudo_id, evidence, user_rec["E_i"])
-            # Push to smart contract
+            entry = revoke_user_access(pseudo_id, ev_reason, user_rec["E_i"])
             try:
                 c = _get_contract()
                 if c:
@@ -241,24 +382,23 @@ def ha_revoke():
                         pseudo_id, entry["HK_i"], entry["CH_i"],
                         entry["j_i"], entry["cred_i"]
                     ).transact()
-                    _get_web3().eth.wait_for_transaction_receipt(tx)
+                    _wait_for_receipt(_get_web3(), tx)
             except Exception as be:
                 app.logger.warning(f"Blockchain revoke skipped: {be}")
-            return render_template("bcca_ha_dashboard.html",
-                                   params=load_params(), users=get_all_users(),
-                                   evidence=get_evidence_entries(),
-                                   ehr_count=len(_EHR_MSGS),
-                                   msg=f"User {pseudo_id[:20]}... revoked.")
+            return render_template("bcca_ha_revoke.html",
+                                   users=get_all_users(),
+                                   revoked_list=get_evidence_entries(),
+                                   msg=f"User {pseudo_id[:20]}... revoked successfully.")
         except Exception as e:
-            return render_template("bcca_ha_dashboard.html",
-                                   params=load_params(), users=get_all_users(),
-                                   evidence=get_evidence_entries(),
-                                   ehr_count=len(_EHR_MSGS),
-                                   error=str(e))
-    return render_template("bcca_ha_dashboard.html",
-                           params=load_params(), users=get_all_users(),
-                           evidence=get_evidence_entries(),
-                           ehr_count=len(_EHR_MSGS))
+            return render_template("bcca_ha_revoke.html",
+                                   users=users, revoked_list=revoked, error=str(e))
+    return render_template("bcca_ha_revoke.html", users=users, revoked_list=revoked)
+
+@app.route("/ha/modify", methods=["GET"])
+def ha_modify():
+    if session.get("role") != "HA":
+        return redirect(url_for("ha_login"))
+    return render_template("bcca_ha_modify.html", evidence=get_evidence_entries())
 
 @app.route("/ha/modify_evidence", methods=["POST"])
 def ha_modify_evidence():
@@ -268,48 +408,74 @@ def ha_modify_evidence():
         pseudo_id    = request.form["pseudo_id"]
         new_evidence = request.form["new_evidence"]
         updated = modify_evidence(pseudo_id, new_evidence)
-        # Update on blockchain
         try:
             c = _get_contract()
             if c:
                 tx = c.functions.modifyEvidenceEntry(
                     pseudo_id, updated["cred_i"], updated["CH_i"]
                 ).transact()
-                _get_web3().eth.wait_for_transaction_receipt(tx)
+                _wait_for_receipt(_get_web3(), tx)
         except Exception as be:
             app.logger.warning(f"Blockchain modify skipped: {be}")
         msg = f"Evidence for {pseudo_id[:20]}... updated. Block hash UNCHANGED."
-        return render_template("bcca_ha_dashboard.html",
-                               params=load_params(), users=get_all_users(),
-                               evidence=get_evidence_entries(),
-                               ehr_count=len(_EHR_MSGS), msg=msg)
+        return render_template("bcca_ha_modify.html",
+                               evidence=get_evidence_entries(), msg=msg)
     except Exception as e:
-        return render_template("bcca_ha_dashboard.html",
-                               params=load_params(), users=get_all_users(),
-                               evidence=get_evidence_entries(),
-                               ehr_count=len(_EHR_MSGS), error=str(e))
+        return render_template("bcca_ha_modify.html",
+                               evidence=get_evidence_entries(), error=str(e))
 
 # ──────────────────────────────────────────────────────────────────────────────
-# REGISTRATION — Algorithm 2 (Patient or Doctor)
+# REGISTRATION — Algorithms 2 + 3 + 4 run automatically in one step
 # ──────────────────────────────────────────────────────────────────────────────
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         try:
-            role   = request.form["role"].upper()
-            rid    = request.form["rid"]
-            pw     = request.form["password"]
-            dob    = request.form["dob"]
-            sa     = request.form["security_answer"]
-            od     = request.form["other_details"]
+            role = request.form["role"].upper()
+            rid  = request.form["rid"]
+            pw   = request.form["password"]
+            dob  = request.form["dob"]
+            sa   = request.form["security_answer"]
+            od   = request.form["other_details"]
 
+            # ── Algorithm 2: User key generation ──────────────────────────────
             reg_pkt, local = bcca_register(rid, pw, dob, sa, od, role)
-            # Store local key material temporarily in session for key-gen step
-            session["pending_local"]  = local
-            session["pending_reg"]    = reg_pkt
+
+            # ── Algorithm 3: HA partial key extraction (runs in backend) ──────
+            ha_input = {
+                "upk"  : reg_pkt["upk"],
+                "RID"  : rid,
+                "UPW"  : str(reg_pkt["UPW"]),
+                "alpha": str(reg_pkt["alpha"]),
+                "role" : role,
+            }
+            partial = extract_partial_key(ha_input)
+
+            # Register on blockchain
+            role_int = 0 if role == "PATIENT" else 1
+            _blockchain_register(partial["ID_i"], partial["gpk_i"],
+                                  reg_pkt["upk"], partial["E_i"],
+                                  partial["h1_i"], role_int)
+
+            # ── Algorithm 4: Full key generation (runs in backend) ────────────
+            full_key = generate_keys(partial, local)
+
+            # Store full keys in memory keyed by pseudonym ID
+            pseudo_id = partial["ID_i"]
+            _KEY_STORE[pseudo_id] = full_key
+            # Store credentials so login only needs RID + password
+            _KEY_STORE[pseudo_id]["od"]  = od
+            _KEY_STORE[pseudo_id]["dob"] = dob
+            _KEY_STORE[pseudo_id]["sa"]  = sa
+            # Map RID → pseudo_id so login only needs RID
+            _RID_TO_PSEUDO[rid] = pseudo_id
+            # Persist both stores so they survive server restart
+            _save_persistent_stores()
+            _append_audit(pseudo_id, "REGISTER", "", role)
+
             return render_template("bcca_register_result.html",
-                                   reg=reg_pkt, local=local)
+                                   pseudo_id=pseudo_id, role=role, rid=rid)
         except Exception as e:
             return render_template("bcca_register.html", error=str(e))
     return render_template("bcca_register.html")
@@ -320,9 +486,13 @@ def register():
 
 @app.route("/keygen", methods=["GET", "POST"])
 def keygen():
+    # Auto-fill: check if HA has already processed this user's registration
+    rid = session.get("pending_rid")
+    auto_partial = _PENDING_PARTIAL.get(rid) if rid else None
+
     if request.method == "POST":
         try:
-            # Partial key material typed/pasted from HA response
+            # Use form values if submitted, else fall back to auto_partial
             partial = {
                 "ID_i"  : request.form["id_i"],
                 "gpk_i" : request.form["gpk_i"],
@@ -339,20 +509,25 @@ def keygen():
 
             local = session.get("pending_local")
             if not local:
-                raise ValueError("No pending registration. Please register first.")
+                raise ValueError("No pending registration found. Please register first.")
 
             full_key = generate_keys(partial, local)
 
             # Save to key store (keyed by pseudonym ID)
             _KEY_STORE[partial["ID_i"]] = full_key
-            session["user_id"] = partial["ID_i"]
-            session["role"]    = partial["role"]
+            session["user_id"]       = partial["ID_i"]
+            session["role"]          = partial["role"]
+            session["pending_rid"]   = None   # clear
+            # Remove from pending partial store
+            if rid:
+                _PENDING_PARTIAL.pop(rid, None)
 
             return render_template("bcca_keygen_result.html",
                                    keys=full_key, role=partial["role"])
         except Exception as e:
-            return render_template("bcca_keygen.html", error=str(e))
-    return render_template("bcca_keygen.html")
+            return render_template("bcca_keygen.html",
+                                   error=str(e), auto_partial=auto_partial)
+    return render_template("bcca_keygen.html", auto_partial=auto_partial)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LOGIN — Algorithm 5 (Multi-Factor)
@@ -362,38 +537,48 @@ def keygen():
 def login():
     if request.method == "POST":
         try:
-            pseudo_id = request.form["pseudo_id"]
-            rid       = request.form["rid"]
-            password  = request.form["password"]
-            dob       = request.form["dob"]
-            sa        = request.form["security_answer"]
-            od        = request.form["other_details"]
+            rid      = request.form["rid"]
+            password = request.form["password"]
+
+            # Look up pseudonym by RID (set during registration)
+            pseudo_id = _RID_TO_PSEUDO.get(rid)
+            if pseudo_id is None:
+                raise ValueError("No account found for this ID. Please register first.")
+
+            if is_revoked(pseudo_id):
+                raise ValueError("Your account has been revoked by the Hospital Admin. Access denied.")
 
             stored = _KEY_STORE.get(pseudo_id)
             if stored is None:
-                raise ValueError("No keys found for this pseudonym ID. "
-                                 "Complete key generation first.")
+                # Try reloading from disk (in case in-memory store was cleared)
+                _load_persistent_stores()
+                stored = _KEY_STORE.get(pseudo_id)
+            if stored is None:
+                raise ValueError("Keys not found. Please register again.")
+
+            # Retrieve credentials stored during registration
+            dob = stored.get("dob", "")
+            sa  = stored.get("sa",  "")
+            od  = stored.get("od",  "")
 
             ok = bcca_login(stored, rid, password, dob, sa, od)
             if ok:
                 session["user_id"] = pseudo_id
                 session["role"]    = stored["role"]
+                _append_audit(pseudo_id, "LOGIN", "", stored["role"])
                 if stored["role"] == "PATIENT":
                     return redirect(url_for("patient_dashboard"))
                 else:
                     return redirect(url_for("doctor_dashboard"))
             else:
                 return render_template("bcca_login.html",
-                                       error="Login failed. Check your credentials.")
+                                       error="Invalid credentials. Please try again.")
         except Exception as e:
             return render_template("bcca_login.html", error=str(e))
     return render_template("bcca_login.html")
 
 @app.route("/logout")
 def logout():
-    uid = session.get("user_id")
-    if uid and uid != "ha_admin":
-        _KEY_STORE.pop(uid, None)
     session.clear()
     return redirect(url_for("home"))
 
@@ -454,6 +639,7 @@ def upload_ehr():
             ehr_msg["verified"]     = True
             ehr_msg["ehr_preview"]  = vitals[:60] + ("..." if len(vitals) > 60 else "")
             _EHR_MSGS.append(ehr_msg)
+            _append_audit(session["user_id"], "EHR_UPLOAD", "", "PATIENT")
 
             return render_template("bcca_upload_ehr.html",
                                    success=True, ehr_msg=ehr_msg,
@@ -487,16 +673,19 @@ def doctor_decrypt_ehr():
         plaintext = plaintext_bytes.decode("utf-8")
         ehr_data  = json.loads(plaintext)
 
+        patient_pid = request.form.get("patient_pid", "")
+        # Log access locally
+        _append_audit(session["user_id"], "EHR_ACCESS", patient_pid, "DOCTOR")
+
         # Log access on blockchain
         try:
             c = _get_contract()
             if c:
                 block_hash_hex = request.form.get("block_hash", "0" * 64)
-                patient_pid    = request.form.get("patient_pid", "")
                 tx = c.functions.logEHRAccess(
                     session["user_id"], patient_pid, block_hash_hex
                 ).transact()
-                _get_web3().eth.wait_for_transaction_receipt(tx)
+                _wait_for_receipt(_get_web3(), tx)
         except Exception as be:
             app.logger.warning(f"Blockchain access log skipped: {be}")
 
@@ -607,6 +796,11 @@ def patient_auth_finalize():
 # BATCH VERIFICATION API — Algorithm 7 Part C
 # ──────────────────────────────────────────────────────────────────────────────
 
+@app.route("/node/blockchain_status")
+def api_blockchain_status():
+    """Return live blockchain connection status as JSON."""
+    return jsonify(_blockchain_status())
+
 @app.route("/node/batch_verify", methods=["POST"])
 def api_batch_verify():
     """Blockchain node batch-verifies all pending EHR messages."""
@@ -635,21 +829,26 @@ def registry():
 
 @app.route("/audit_log")
 def audit_log():
-    """View blockchain audit log."""
-    logs = []
-    try:
-        c = _get_contract()
-        if c:
-            count = c.functions.getAuditLogLength().call()
-            for i in range(min(count, 100)):   # last 100 entries
-                entry = c.functions.getAuditEntry(i).call()
-                logs.append({
-                    "actor": entry[0], "action": entry[1],
-                    "target": entry[2], "timestamp": entry[3]
-                })
-    except Exception as e:
-        app.logger.warning(f"Could not fetch audit log: {e}")
-    return render_template("bcca_audit_log.html", logs=logs)
+    """View audit log filtered by the caller's role."""
+    all_logs = _load_audit()
+    uid  = session.get("user_id")
+    role = session.get("role", "")
+
+    if uid == "ha_admin":
+        # HA sees everything
+        logs = all_logs
+    elif role == "DOCTOR":
+        # Doctor sees only their own actions
+        logs = [e for e in all_logs if e.get("actor") == uid]
+    elif role == "PATIENT":
+        # Patient sees their own events + any doctor's EHR_ACCESS targeting them
+        logs = [e for e in all_logs
+                if e.get("actor") == uid
+                or (e.get("action") == "EHR_ACCESS" and e.get("target") == uid)]
+    else:
+        logs = []
+
+    return render_template("bcca_audit_log.html", logs=logs, role=role)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # EVIDENCE CHAIN VIEW

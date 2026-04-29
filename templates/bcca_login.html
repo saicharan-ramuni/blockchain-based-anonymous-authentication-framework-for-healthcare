@@ -5,7 +5,16 @@
 <title>Login — Healthcare BCCA</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>body{background:#f0f4f8;} .card{border:none;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.1);}</style>
+<style>
+body{background:#f0f4f8;}
+.card{border:none;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.1);}
+.role-card{cursor:pointer;border:2px solid #e5e7eb;border-radius:12px;padding:20px;
+           text-align:center;transition:.2s;}
+.role-card:hover{border-color:#0d4f8c;}
+.role-card.selected-patient{border-color:#1d4ed8;background:#eff6ff;}
+.role-card.selected-doctor{border-color:#065f46;background:#f0fdf4;}
+input[type=radio]{display:none;}
+</style>
 </head>
 <body>
 <nav class="navbar navbar-dark" style="background:#0d4f8c">
@@ -17,52 +26,50 @@
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-5">
       <div class="card p-5">
-        <h3 class="fw-bold mb-1 text-center"><i class="fas fa-sign-in-alt text-primary me-2"></i>Algorithm 5: Login</h3>
-        <p class="text-muted text-center mb-4">Multi-factor authentication — no biometric hardware required</p>
+        <h3 class="fw-bold mb-1 text-center"><i class="fas fa-sign-in-alt text-primary me-2"></i>Login</h3>
+        <p class="text-muted text-center mb-4">Select your role and enter credentials</p>
 
         {% if error %}
         <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
         {% endif %}
 
-        <div class="alert alert-info small mb-4">
-          <i class="fas fa-info-circle me-2"></i>
-          <strong>Multi-factor factors:</strong>
-          Something you <em>know</em> (Password, DOB, SA) +
-          Something you <em>have</em> (device with A_i, B_i).
-        </div>
+        <form method="POST" id="loginForm">
+          <!-- Role Selection -->
+          <div class="mb-4">
+            <label class="form-label fw-bold">I am a</label>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="role-card d-block" id="cardPatient" onclick="selectRole('PATIENT')">
+                  <input type="radio" name="role" value="PATIENT" id="rolePatient" checked>
+                  <i class="fas fa-user-injured fa-2x text-primary mb-2 d-block"></i>
+                  <div class="fw-bold">Patient</div>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="role-card d-block" id="cardDoctor" onclick="selectRole('DOCTOR')">
+                  <input type="radio" name="role" value="DOCTOR" id="roleDoctor">
+                  <i class="fas fa-user-md fa-2x text-success mb-2 d-block"></i>
+                  <div class="fw-bold">Doctor</div>
+                </label>
+              </div>
+            </div>
+          </div>
 
-        <form method="POST">
           <div class="mb-3">
-            <label class="form-label fw-bold">Pseudonym ID (ID_i)</label>
-            <input type="text" class="form-control" name="pseudo_id" required
-                   placeholder="Your pseudonym from key generation">
+            <label class="form-label fw-bold" id="ridLabel">Aadhaar / Patient ID</label>
+            <input type="text" class="form-control" name="rid" id="ridInput" required
+                   placeholder="Enter your identity">
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Real Identity (RID_i)</label>
-            <input type="text" class="form-control" name="rid" required
-                   placeholder="Aadhaar/SSN or Medical License ID">
-          </div>
-          <div class="mb-3">
+          <div class="mb-4">
             <label class="form-label fw-bold">Password</label>
             <input type="password" class="form-control" name="password" required>
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Date of Birth</label>
-            <input type="date" class="form-control" name="dob" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Security Answer</label>
-            <input type="text" class="form-control" name="security_answer" required>
-          </div>
-          <div class="mb-4">
-            <label class="form-label fw-bold">Other Details (Blood Group / Medical Reg. No.)</label>
-            <input type="text" class="form-control" name="other_details" required>
-          </div>
 
-          <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
-            <i class="fas fa-unlock-alt me-2"></i>Login
+          <button type="submit" class="btn w-100 py-2 fw-bold" id="loginBtn"
+                  style="background:#1d4ed8;color:#fff;">
+            <i class="fas fa-unlock-alt me-2"></i>Login as Patient
           </button>
         </form>
         <hr>
@@ -71,5 +78,36 @@
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body></html>
+<script>
+function selectRole(role) {
+  const isDoctor = role === 'DOCTOR';
+  document.getElementById('cardPatient').className =
+    'role-card d-block' + (!isDoctor ? ' selected-patient' : '');
+  document.getElementById('cardDoctor').className =
+    'role-card d-block' + (isDoctor ? ' selected-doctor' : '');
+  document.getElementById('ridLabel').textContent =
+    isDoctor ? 'Medical License ID' : 'Aadhaar / Patient ID';
+  document.getElementById('ridInput').placeholder =
+    isDoctor ? 'Enter your Medical License ID' : 'Enter your Aadhaar / Patient ID';
+  const btn = document.getElementById('loginBtn');
+  btn.style.background = isDoctor ? '#065f46' : '#1d4ed8';
+  btn.innerHTML = `<i class="fas fa-unlock-alt me-2"></i>Login as ${isDoctor ? 'Doctor' : 'Patient'}`;
+}
+// Set initial state
+selectRole('PATIENT');
+</script>
+
+<!-- Launcher switch button -->
+<a href="http://localhost:5000" title="Back to Mode Selector"
+   style="position:fixed;bottom:24px;right:24px;z-index:9999;
+          background:#0f2027;color:#fff;border-radius:50px;
+          padding:10px 18px;font-size:.82rem;font-weight:600;
+          text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.4);
+          display:flex;align-items:center;gap:8px;transition:.2s;"
+   onmouseover="this.style.background='#065f46'"
+   onmouseout="this.style.background='#0f2027'">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  Switch Mode
+</a>
+</body>
+</html>

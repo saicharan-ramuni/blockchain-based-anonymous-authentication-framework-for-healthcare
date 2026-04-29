@@ -94,9 +94,10 @@ from bcca.user import generate_keys
 patient_keys = generate_keys(patient_partial, patient_local)
 doctor_keys  = generate_keys(doctor_partial,  doctor_local)
 
-assert len(patient_keys["SID"]) == 20, "Patient should have 20 SID values"
-assert len(patient_keys["Q"])   == 20, "Patient should have 20 Q values"
-assert len(doctor_keys["SID"])  == 20, "Doctor should have 20 SID values"
+from bcca.user import PRECOMPUTE_N
+assert len(patient_keys["SID"]) == PRECOMPUTE_N, f"Patient should have {PRECOMPUTE_N} SID values"
+assert len(patient_keys["Q"])   == PRECOMPUTE_N, f"Patient should have {PRECOMPUTE_N} Q values"
+assert len(doctor_keys["SID"])  == PRECOMPUTE_N, f"Doctor should have {PRECOMPUTE_N} SID values"
 
 print(f"  Patient SID[0] = {patient_keys['SID'][0][:25]}...")
 print(f"  Patient KID[0] = {patient_keys['KID'][0][:30]}...")
