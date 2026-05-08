@@ -24,15 +24,10 @@
       <div class="card p-5 text-center mb-4">
         <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
         <h4 class="fw-bold">EHR Uploaded & Verified on Blockchain</h4>
-        <p class="text-muted">Algorithm 6 signed and Algorithm 7 verified successfully.</p>
         <div class="alert alert-success text-start">
           <div><strong>Block Hash:</strong> <code>{{ ehr_msg.get('block_hash', 'N/A') }}</code></div>
           <div><strong>Timestamp:</strong> {{ ehr_msg.T_i }}</div>
           <div><strong>σ_i (signature):</strong> <code>{{ ehr_msg.sigma_i[:30] }}...</code></div>
-        </div>
-        <div class="alert alert-info text-start">
-          <span class="zero-ec">0 EC Multiplications</span>
-          &nbsp;used on patient device — σ_i = psk_i + h₂·SID_k + h₃·x_i (scalar only)
         </div>
         <div class="d-flex gap-3 mt-3">
           <a href="/patient/upload_ehr" class="btn btn-primary flex-fill">Upload Another</a>
@@ -44,14 +39,7 @@
       {% endif %}
 
       <div class="card p-5">
-        <h4 class="fw-bold mb-1"><i class="fas fa-file-upload text-primary me-2"></i>Algorithm 6: EHR Sign & Encrypt</h4>
-        <p class="text-muted mb-4">Enter patient vitals, notes, or upload a report file.</p>
-
-        <div class="alert alert-info small">
-          <span class="zero-ec me-2">0 EC Mults</span>
-          Encryption: c_i = m_i ⊕ ek_{i,k}&nbsp;&nbsp;|&nbsp;&nbsp;
-          Signature: σ_i = psk_i + h₂·SID_{i,k} + h₃·x_i (pure scalar arithmetic)
-        </div>
+        <h4 class="fw-bold mb-4"><i class="fas fa-file-upload text-primary me-2"></i>EHR Sign & Encrypt</h4>
 
         <form method="POST" enctype="multipart/form-data">
           <div class="mb-3">

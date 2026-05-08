@@ -26,7 +26,7 @@ input[type=radio]{display:none;}
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-5">
+    <div class="col-md-6">
       <div class="card p-5">
         <h3 class="fw-bold mb-1 text-center"><i class="fas fa-sign-in-alt text-primary me-2"></i>Login</h3>
         <p class="text-muted text-center mb-4">Select your role and enter credentials</p>
@@ -36,6 +36,7 @@ input[type=radio]{display:none;}
         {% endif %}
 
         <form method="POST" id="loginForm">
+
           <!-- Role Selection -->
           <div class="mb-4">
             <label class="form-label fw-bold">I am a</label>
@@ -57,14 +58,46 @@ input[type=radio]{display:none;}
             </div>
           </div>
 
+          <!-- Real Identity -->
           <div class="mb-3">
-            <label class="form-label fw-bold" id="ridLabel">Aadhaar / Patient ID</label>
+            <label class="form-label fw-bold" id="ridLabel">Real Identity (RID_i)</label>
             <input type="text" class="form-control" name="rid" id="ridInput" required
-                   placeholder="Enter your identity">
+                   placeholder="Aadhaar number / SSN (Patient) or Medical License ID (Doctor)">
           </div>
-          <div class="mb-4">
-            <label class="form-label fw-bold">Password</label>
+
+          <!-- Password -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Password (PW_i)</label>
             <input type="password" class="form-control" name="password" required>
+          </div>
+
+          <!-- Date of Birth -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Date of Birth (DOB_i)</label>
+            <input type="date" class="form-control" name="dob" required>
+          </div>
+
+          <!-- Security Answer -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Security Answer (SA_i)</label>
+            <input type="text" class="form-control" name="security_answer" required
+                   placeholder="e.g., Mother's maiden name">
+          </div>
+
+          <!-- Other Details — role-specific -->
+          <div class="mb-4" id="odPatient">
+            <label class="form-label fw-bold">Blood Group</label>
+            <select class="form-select" name="other_details" id="odPatientSelect">
+              <option value="A+">A+</option><option value="A-">A-</option>
+              <option value="B+">B+</option><option value="B-">B-</option>
+              <option value="AB+">AB+</option><option value="AB-">AB-</option>
+              <option value="O+">O+</option><option value="O-">O-</option>
+            </select>
+          </div>
+          <div class="mb-4 d-none" id="odDoctor">
+            <label class="form-label fw-bold">Medical Registration Number</label>
+            <input type="text" class="form-control" name="other_details" id="odDoctorInput"
+                   placeholder="e.g., MCI-123456">
           </div>
 
           <button type="submit" class="btn w-100 py-2 fw-bold" id="loginBtn"
@@ -78,22 +111,31 @@ input[type=radio]{display:none;}
     </div>
   </div>
 </div>
+
 <script>
 function selectRole(role) {
   const isDoctor = role === 'DOCTOR';
+
   document.getElementById('cardPatient').className =
     'role-card d-block' + (!isDoctor ? ' selected-patient' : '');
   document.getElementById('cardDoctor').className =
     'role-card d-block' + (isDoctor ? ' selected-doctor' : '');
+
   document.getElementById('ridLabel').textContent =
-    isDoctor ? 'Medical License ID' : 'Aadhaar / Patient ID';
+    isDoctor ? 'Real Identity (RID_i)' : 'Real Identity (RID_i)';
   document.getElementById('ridInput').placeholder =
-    isDoctor ? 'Enter your Medical License ID' : 'Enter your Aadhaar / Patient ID';
+    isDoctor ? 'Medical License ID (Doctor)' : 'Aadhaar number / SSN (Patient)';
+
+  // Toggle Other Details field
+  document.getElementById('odPatient').classList.toggle('d-none', isDoctor);
+  document.getElementById('odDoctor').classList.toggle('d-none', !isDoctor);
+  document.getElementById('odPatientSelect').disabled = isDoctor;
+  document.getElementById('odDoctorInput').disabled   = !isDoctor;
+
   const btn = document.getElementById('loginBtn');
   btn.style.background = isDoctor ? '#065f46' : '#1d4ed8';
   btn.innerHTML = `<i class="fas fa-unlock-alt me-2"></i>Login as ${isDoctor ? 'Doctor' : 'Patient'}`;
 }
-// Set initial state
 selectRole('PATIENT');
 </script>
 

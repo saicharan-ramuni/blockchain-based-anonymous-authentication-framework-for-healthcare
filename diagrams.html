@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthcare IoT Authentication — Paper Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f1923;
+    color: #e0e0e0;
+    padding: 30px 20px 60px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: linear-gradient(135deg, #1a3a5c, #0d2137);
+    border-radius: 16px;
+    border: 1px solid #2a5080;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .page-header h1 {
+    font-size: 1.6rem;
+    color: #63b3ed;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .page-header p {
+    font-size: 0.9rem;
+    color: #90a4ae;
+  }
+
+  /* Table of Contents */
+  .toc {
+    background: #16202d;
+    border: 1px solid #2a5080;
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 36px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .toc h2 { color: #63b3ed; font-size: 1rem; margin-bottom: 12px; }
+  .toc ol { padding-left: 22px; }
+  .toc li { margin-bottom: 7px; }
+  .toc a {
+    color: #90caf9;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .toc a:hover { color: #fff; text-decoration: underline; }
+
+  /* Diagram cards */
+  .diagram-card {
+    background: #16202d;
+    border: 1px solid #253545;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px 28px 18px;
+    background: linear-gradient(90deg, #1a3a5c, #16202d);
+    border-bottom: 1px solid #253545;
+  }
+  .fig-num {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    background: #1a6fc4;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .card-header-text h2 {
+    font-size: 1.08rem;
+    color: #e3f2fd;
+    margin-bottom: 5px;
+  }
+  .card-header-text p {
+    font-size: 0.8rem;
+    color: #78909c;
+    line-height: 1.5;
+  }
+  .diagram-wrap {
+    padding: 30px 20px;
+    background: #fff;
+    overflow-x: auto;
+    display: flex;
+    justify-content: center;
+  }
+  .diagram-wrap .mermaid {
+    min-width: 600px;
+    max-width: 100%;
+  }
+
+  /* colour chips for legend */
+  .chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Blockchain-Based Anonymous Authentication Framework for Healthcare IoT</h1>
+  <p>Paper Diagrams &nbsp;|&nbsp; Chaitanya Bharathi Institute of Technology &nbsp;|&nbsp; 2025</p>
+</div>
+
+<!-- Table of Contents -->
+<div class="toc">
+  <h2>Figures in this Document</h2>
+  <ol>
+    <li><a href="#fig1">System Architecture Overview</a></li>
+    <li><a href="#fig2">Dual-Mode Architecture Diagram</a></li>
+    <li><a href="#fig3">Protocol Sequence / Flow Diagram</a></li>
+    <li><a href="#fig4">Dual-Chain Blockchain Structure</a></li>
+    <li><a href="#fig5">SID/KID Precomputation Concept</a></li>
+  </ol>
+</div>
+
+
+<!-- ================================================================
+     FIGURE 1 — SYSTEM ARCHITECTURE
+     ================================================================ -->
+<div class="diagram-card" id="fig1">
+  <div class="card-header">
+    <span class="fig-num">Fig. 1</span>
+    <div class="card-header-text">
+      <h2>System Architecture Overview</h2>
+      <p>End-to-end view of all entities: Hospital Authority (HA), Patient IoT wearables, Doctor terminals,
+         Cloud Server, and the dual-chain Blockchain (Historical + Evidence chains). Arrows show key material
+         flows, EHR upload paths, mutual authentication, and revocation.</p>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+flowchart TD
+    HA(["🏥 Hospital Authority HA\nKGC / Trusted Authority\nHolds master key s and\nChameleon Hash trapdoor ck"])
+
+    subgraph USERS["Users / Entities"]
+        direction LR
+        PAT(["👤 Patient\nIoT Wearable Sensor\nECG · SpO₂ · Glucose\nSigns with 0 T_Mu"])
+        DOC(["👨‍⚕️ Doctor\nHealthcare Provider\nVerifies signatures\nDecrypts EHR"])
+    end
+
+    subgraph INFRA["Cloud Infrastructure"]
+        direction LR
+        CS(["☁️ Cloud Server\nEncrypted EHR Storage\nAES-256-GCM payload"])
+    end
+
+    subgraph CHAIN["Blockchain Network — Ganache / Ethereum-compatible"]
+        direction LR
+        HVC(["📋 Historical Chain HVC\nImmutable EHR Audit Log\nNon-repudiable records"])
+        ERC(["🔒 Evidence Chain ERC\nChameleon Hash Revocation\nCorrectable without fork"])
+    end
+
+    HA -->|"① Partial key psk_i\n+ Pseudonym PID_i"| PAT
+    HA -->|"② Partial key psk_j\n+ Role token"| DOC
+    PAT <-->|"③ Mutual Authentication\nsigma · KID · T\nSession key K_ab"| DOC
+    PAT -->|"④ Signed + Encrypted EHR\nσ_i  KID_k  C_m  T_i"| CS
+    CS  -->|"⑤ Forward EHR"| DOC
+    PAT -->|"⑥ On-chain upload\nBlockchain-Anchored Mode"| HVC
+    DOC -->|"⑦ Audit / Verify query"| HVC
+    HA  -->|"⑧ Revoke user\nev_i = CH(PID_i, reason, r)"| ERC
+    HA  -->|"⑨ Modify evidence\nChameleon trapdoor ck"| ERC
+
+    classDef ha      fill:#1a4f8a,stroke:#63b3ed,color:#fff,rx:10
+    classDef pat     fill:#1b5e20,stroke:#66bb6a,color:#fff,rx:10
+    classDef doc     fill:#e65100,stroke:#ffa726,color:#fff,rx:10
+    classDef cloud   fill:#01579b,stroke:#29b6f6,color:#fff,rx:10
+    classDef hvc     fill:#2e7d32,stroke:#81c784,color:#fff,rx:10
+    classDef erc     fill:#b71c1c,stroke:#ef5350,color:#fff,rx:10
+
+    class HA ha
+    class PAT pat
+    class DOC doc
+    class CS cloud
+    class HVC hvc
+    class ERC erc
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     FIGURE 2 — DUAL-MODE ARCHITECTURE
+     ================================================================ -->
+<div class="diagram-card" id="fig2">
+  <div class="card-header">
+    <span class="fig-num">Fig. 2</span>
+    <div class="card-header-text">
+      <h2>Dual-Mode Architecture Diagram</h2>
+      <p><strong>Mode A — Lightweight (Off-Chain):</strong> Fast peer-to-peer mutual authentication for routine
+         telemedicine; no blockchain overhead; SQLite local storage.<br>
+         <strong>Mode B — Blockchain-Anchored (On-Chain):</strong> Immutable EHR upload, cross-hospital audit,
+         Chameleon Hash evidence correction via Ganache smart contract.</p>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+flowchart LR
+    HA(["🏥 Hospital Authority HA\nIssues keys + pseudonyms\nHolds trapdoor ck"])
+
+    subgraph MODEA["MODE A — Lightweight Off-Chain"]
+        direction TB
+        PA(["👤 Patient\nIoT Sensor"])
+        DA(["👨‍⚕️ Doctor"])
+        KAB(["🔑 Session Key K_ab\nHKDF-SHA256"])
+        STORE(["💾 Local Storage\nAES-256-GCM · SQLite"])
+        PA <-->|"CLS Signature · KID_k · T\nMutual Authentication"| DA
+        PA -->|"Key derived"| KAB
+        DA -->|"Key derived"| KAB
+        KAB --> STORE
+    end
+
+    subgraph MODEB["MODE B — Blockchain-Anchored On-Chain"]
+        direction TB
+        PB(["👤 Patient\nIoT Sensor"])
+        DB(["👨‍⚕️ Doctor"])
+        SC(["📜 Smart Contract\nBCCA_Healthcare.sol\nSolidity · Truffle · Web3.py"])
+        HVC2(["📋 Historical Chain HVC\nImmutable EHR records"])
+        ERC2(["🔒 Evidence Chain ERC\nChameleon Hash revocation"])
+        PB -->|"Upload σ_i · KID_k · C_m"| SC
+        SC --> HVC2
+        DB -->|"Query / Batch verify"| HVC2
+        SC --> ERC2
+    end
+
+    HA -->|"Partial key + PID"| PA
+    HA -->|"Partial key + role"| DA
+    HA -->|"Partial key + PID"| PB
+    HA -->|"Partial key + role"| DB
+    HA -->|"Revoke · Modify"| ERC2
+
+    classDef ha   fill:#1a4f8a,stroke:#63b3ed,color:#fff
+    classDef pat  fill:#1b5e20,stroke:#66bb6a,color:#fff
+    classDef doc  fill:#e65100,stroke:#ffa726,color:#fff
+    classDef sc   fill:#4a148c,stroke:#ba68c8,color:#fff
+    classDef hvc  fill:#2e7d32,stroke:#81c784,color:#fff
+    classDef erc  fill:#b71c1c,stroke:#ef5350,color:#fff
+    classDef kab  fill:#01579b,stroke:#29b6f6,color:#fff
+    classDef st   fill:#37474f,stroke:#90a4ae,color:#fff
+
+    class HA ha
+    class PA,PB pat
+    class DA,DB doc
+    class SC sc
+    class HVC2 hvc
+    class ERC2 erc
+    class KAB kab
+    class STORE st
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     FIGURE 3 — PROTOCOL SEQUENCE DIAGRAM
+     ================================================================ -->
+<div class="diagram-card" id="fig3">
+  <div class="card-header">
+    <span class="fig-num">Fig. 3</span>
+    <div class="card-header-text">
+      <h2>Protocol Sequence / Flow Diagram</h2>
+      <p>Complete message sequence covering all 9 algorithms: System Setup, Registration,
+         Key Generation + SID/KID Precomputation, Multi-Factor Login, EHR Sign &amp; Encrypt,
+         Blockchain Verification, Mutual Authentication, Revocation, and Evidence Modification.</p>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant HA as 🏥 Hospital Authority
+    participant P  as 👤 Patient IoT
+    participant D  as 👨‍⚕️ Doctor
+    participant BC as ⛓️ Blockchain
+
+    rect rgb(227,242,253)
+        Note over HA,BC: Algorithm 1 — System Setup
+        HA->>HA: Select ECC params · Choose master key s
+        HA->>HA: CLA split: s1=(s·Px) mod q · s2=(s1+s XOR Px) mod q
+        HA->>HA: Ppub=sP · Ppub1=s1·P · Ppub2=s2·P · dpk=y·P
+        HA-->>P: Publish params {Ppub, Ppub1, Ppub2, H1, H2, H3}
+        HA-->>D: Publish params {Ppub, Ppub1, Ppub2, H1, H2, H3}
+    end
+
+    rect rgb(232,245,233)
+        Note over P,HA: Algorithm 2 — Registration
+        P->>P: Choose x_i · compute upk_i=x_i·P
+        P->>P: Compute alpha_i=H1(DOB,SA,OD) · UPW_i=H1(RID,PW)
+        P->>HA: Reg_i = {upk_i, RID_i, UPW_i, alpha_i, Role=PATIENT}
+        HA->>HA: Verify identity · pick k_i · gpk_i=k_i·P
+        HA->>HA: h1=H1(ID_i,gpk_i,upk_i,Ppub,E_i)
+        HA->>HA: psk_i = alpha_i + s·h1 mod q
+        HA->>HA: A_i=psk_i·UPW_i · B_i=H1(alpha_i,UPW_i,psk_i)
+        HA-->>P: Return {gpk_i, psk_i, E_i, PID_i, A_i, B_i}
+        HA->>BC: Register PID_i + KID array on-chain
+    end
+
+    rect rgb(243,229,245)
+        Note over P: Algorithm 3 — Key Gen + SID/KID Precomputation (Offline · One-Time)
+        P->>P: Verify psk_i·P == gpk_i + h1·Ppub ✓
+        P->>P: For j=1..n: SID_j = rand mod q (OFFLINE)
+        P->>P: For j=1..n: KID_j = SID_j · P  (EC mults done offline)
+        P->>P: Store SID[] secret · KID[] local/on-chain
+    end
+
+    rect rgb(255,243,224)
+        Note over P,D: Algorithm 4 — Multi-Factor Login (0 EC Multiplications)
+        P->>P: Recompute alpha_i · UPW_i
+        P->>P: Recover psk_i = A_i · UPW_i⁻¹
+        P->>P: Verify B_i == H1(alpha_i, UPW_i, psk_i) ✓ Access granted
+    end
+
+    rect rgb(232,245,233)
+        Note over P,BC: Algorithm 5 — EHR Sign and Encrypt (0 T_Mu Online)
+        P->>P: Retrieve SID_k · KID_k from local store
+        P->>P: h2=H2(ID_i,KID_k,Q_k,Ppub1) · h3=H3(c_i,upk_i,gpk_i,Ppub2,T_i)
+        P->>P: sigma_i = psk_i + h2·SID_k + h3·x_i mod q
+        P->>P: C_m = AES-GCM_K(EHR data)
+        P->>BC: Upload {ID_i, sigma_i, KID_k, E_i, upk_i, gpk_i, C_m, T_i}
+    end
+
+    rect rgb(237,231,246)
+        Note over BC: Algorithm 6 — Blockchain Verification
+        BC->>BC: Check timestamp freshness |T_cur - T_i| <= 300s
+        BC->>BC: Check revocation status of PID_i
+        BC->>BC: Recompute h1_i · h2_i · h3_i
+        BC->>BC: Verify: sigma_i·G == gpk_i + h1·Ppub + h2·KID_k + h3·upk_i ✓
+        BC->>BC: Append to Historical Chain HVC
+        BC-->>D: Forward EHR + verification proof
+    end
+
+    rect rgb(255,235,238)
+        Note over P,D: Algorithm 7 — Mutual Authentication + Session Key
+        P->>D: Auth request {sigma_a, KID_a, E_a, T_a}
+        D->>D: Verify sigma_a · derive K_ab
+        D->>P: Auth response {sigma_b, KID_b, E_b, T_b}
+        P->>P: Verify sigma_b · derive K_ab
+        Note over P,D: K_ab = HKDF-SHA256(PID_a|PID_b|T_a|T_b|KID_a|KID_b)
+    end
+
+    rect rgb(255,248,225)
+        Note over HA,BC: Algorithm 8/9 — Revocation and Evidence Modification
+        HA->>BC: ev_i = CH(PID_i|reason, r) → Evidence Chain ERC
+        Note over HA,BC: If evidence was wrong — use Chameleon Hash trapdoor
+        HA->>BC: Find r' s.t. CH(reason_new,r') = ev_i (no new block!)
+        BC->>BC: Update evidence in-place — chain structure intact ✓
+    end
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     FIGURE 4 — DUAL-CHAIN BLOCKCHAIN
+     ================================================================ -->
+<div class="diagram-card" id="fig4">
+  <div class="card-header">
+    <span class="fig-num">Fig. 4</span>
+    <div class="card-header-text">
+      <h2>Dual-Chain Blockchain Structure</h2>
+      <p><strong>Historical Verification Chain (HVC):</strong> Append-only, immutable. Every verified EHR upload
+         is recorded permanently for HIPAA/GDPR audit compliance.<br>
+         <strong>Evidence Revocation Chain (ERC):</strong> Uses Chameleon Hash — the Hospital Authority can
+         modify evidence content using the trapdoor key <em>ck</em> without creating a new block or
+         invalidating subsequent entries.</p>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+flowchart LR
+
+    subgraph HVC["📋 Historical Verification Chain HVC — IMMUTABLE"]
+        direction LR
+        H0(["**Genesis**\nSystem params\nHA public keys\nSetup timestamp"])
+        H1B(["**Block 1**\nH(EHR_1)=A3F...\nσ_1 verified ✓\nPID_1 · T_1\nPrev: H(B0)"])
+        H2B(["**Block 2**\nH(EHR_2)=7C2...\nσ_2 verified ✓\nPID_2 · T_2\nPrev: H(B1)"])
+        H3B(["**Block 3**\nH(EHR_3)=F91...\nσ_3 verified ✓\nPID_3 · T_3\nPrev: H(B2)"])
+        HDT(["**· · ·**"])
+        HNB(["**Block N**\nH(EHR_N)=2B8...\nσ_N verified ✓\nPID_N · T_N\nPrev: H(BN-1)"])
+        H0 -->|"H(B0)"| H1B
+        H1B -->|"H(B1)"| H2B
+        H2B -->|"H(B2)"| H3B
+        H3B --> HDT
+        HDT -->|"H(BN-1)"| HNB
+    end
+
+    subgraph ERC["🔒 Evidence Revocation Chain ERC — CHAMELEON HASH MODIFIABLE"]
+        direction LR
+        E0(["**Genesis**\nCH key HK\nTrapdoor ck\nHA keypair"])
+        E1B(["**Ev-Block 1**\nCH(PID_1·reason_1, r1)\nE_1 = AES-GCM(RID_1)\nT_rev_1\nPrev: CH(E0)"])
+        E2B(["**Ev-Block 2**\nCH(PID_2·reason_2, r2)\nE_2 = AES-GCM(RID_2)\nT_rev_2\nPrev: CH(E1)"])
+        EDT(["**· · ·**"])
+        E0 -->|"CH(E0)"| E1B
+        E1B -->|"CH(E1)"| E2B
+        E2B --> EDT
+    end
+
+    subgraph MOD["⚡ Chameleon Hash Evidence Modification — No Fork"]
+        direction TB
+        OLD(["OLD evidence\nCH(PID_2 · reason_old, r2)"])
+        TRP(["HA uses trapdoor ck\nFinds r2_new such that:\nCH(reason_new, r2_new) = CH(reason_old, r2)"])
+        NEW(["NEW evidence\nCH(PID_2 · reason_new, r2_new)\nSame hash value ✓\nChain intact ✓"])
+        OLD --> TRP --> NEW
+    end
+
+    HA(["🏥 Hospital Authority HA\nHolds trapdoor ck"])
+
+    HA -->|"Append EHR record"| HVC
+    HA -->|"Revoke user"| ERC
+    HA -->|"Modify wrong evidence"| MOD
+    E2B -.->|"evidence to modify"| MOD
+
+    classDef ha   fill:#1a4f8a,stroke:#63b3ed,color:#fff
+    classDef hblk fill:#1b5e20,stroke:#66bb6a,color:#fff,font-size:12px
+    classDef eblk fill:#7b1a1a,stroke:#ef5350,color:#fff,font-size:12px
+    classDef mod  fill:#4a148c,stroke:#ba68c8,color:#fff
+    classDef gen  fill:#37474f,stroke:#90a4ae,color:#fff
+
+    class HA ha
+    class H0,H1B,H2B,H3B,HDT,HNB hblk
+    class E0,E1B,E2B,EDT eblk
+    class OLD,TRP,NEW mod
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     FIGURE 5 — SID/KID PRECOMPUTATION
+     ================================================================ -->
+<div class="diagram-card" id="fig5">
+  <div class="card-header">
+    <span class="fig-num">Fig. 5</span>
+    <div class="card-header-text">
+      <h2>SID/KID Precomputation Concept — Zero EC Multiplication at Signing</h2>
+      <p>The key innovation enabling IoT feasibility. All expensive EC scalar multiplications
+         (T_Mu ≈ 97 ms on ARM Cortex-A72) are shifted to a one-time <strong>offline phase</strong>.
+         At signing time, the device only performs 2 SHA-256 hash calls + 6 modular multiplications
+         (≈ 8.4 ms total), replacing the conventional random-nonce generation T = t·P.</p>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+flowchart LR
+
+    subgraph OFF["🔵 OFFLINE PHASE — One-Time Key Generation (Heavy EC Work)"]
+        direction TB
+        SK(["🔑 User Private Key\nSK_i = x_i · psk_i\nx_i chosen by user\npsk_i from HA"])
+
+        subgraph SIDGEN["SID Array Generation"]
+            direction TB
+            R1(["Random scalar SID_1 ← Z*_q"])
+            R2(["Random scalar SID_2 ← Z*_q"])
+            R3(["Random scalar SID_3 ← Z*_q"])
+            RN(["Random scalar SID_n ← Z*_q"])
+        end
+
+        subgraph KIDGEN["KID Array — EC Multiplication (offline only)"]
+            direction TB
+            K1(["KID_1 = SID_1 · P  ← T_Mu"])
+            K2(["KID_2 = SID_2 · P  ← T_Mu"])
+            K3(["KID_3 = SID_3 · P  ← T_Mu"])
+            KN(["KID_n = SID_n · P  ← T_Mu"])
+        end
+
+        STORE(["💾 Secure Local Storage\nSID[] secret · KID[] public\n100 pairs precomputed"])
+
+        SK --> SIDGEN
+        R1 --> K1
+        R2 --> K2
+        R3 --> K3
+        RN --> KN
+        K1 --> STORE
+        K2 --> STORE
+        K3 --> STORE
+        KN --> STORE
+        R1 --> STORE
+        R2 --> STORE
+        R3 --> STORE
+        RN --> STORE
+    end
+
+    subgraph ON["🟢 ONLINE PHASE — Per-Signature Real-Time (No EC Mults)"]
+        direction TB
+        MSG(["📄 EHR Message m\n+ Timestamp T_i"])
+        PICK(["Pick index k\nRetrieve SID_k · KID_k\nfrom local store"])
+        H12(["Step 1: h2 = H2(ID_i, KID_k, Q_k, Ppub1)\nStep 2: h3 = H3(c_i, upk_i, gpk_i, Ppub2, T_i)\n2 SHA-256 calls only"])
+        CLA(["🔀 CLA Mode — Lightweight\nψ = x-coord(KID_k) mod q\nh3 = h1·h2 + (h1 XOR h2)·ψ  mod q\nh4 = h2·h3 + (h2 XOR h3)·h3 mod q\n2 hash calls → 4 hash values"])
+        SIG(["✍️ Signature σ_i\n= psk_i + h2·SID_k + h3·x_i  mod q\nOnly modular arithmetic!\n0 EC Multiplications ✓"])
+        OUT(["📤 Output: delta = (σ_i, KID_k)\nTransmit {ID_i, PK_i, m, T_i, delta}"])
+        MSG --> PICK --> H12 --> SIG --> OUT
+        H12 -.->|"CLS Lightweight Mode"| CLA
+        CLA -.-> SIG
+    end
+
+    subgraph COST["📊 Cost Comparison"]
+        direction TB
+        C1(["❌ Conventional Scheme\nOnline: 1 T_Mu + 4 T_ha\nt = rand · T = t·P  ← EXPENSIVE\nRPi 4B: ~107 ms per signature"])
+        C2(["✅ Our Scheme BCCA\nOnline: 0 T_Mu + 3 T_ha + 4 T_mu\nRPi 4B: ~8.6 ms per signature\n12.4× faster than conventional"])
+        C3(["✅ Our Scheme CLS\nOnline: 0 T_Mu + 2 T_ha + 6 T_mu\nCLA reduces 4 hashes to 2\nRPi 4B: ~8.4 ms per signature"])
+    end
+
+    STORE -->|"Retrieve at signing"| PICK
+    OUT --> COST
+
+    classDef off  fill:#1a4f8a,stroke:#63b3ed,color:#fff
+    classDef on   fill:#1b5e20,stroke:#66bb6a,color:#fff
+    classDef cost fill:#4a148c,stroke:#ba68c8,color:#fff
+    classDef bad  fill:#7b1a1a,stroke:#ef5350,color:#fff
+    classDef good fill:#1b5e20,stroke:#66bb6a,color:#fff
+
+    class SK,R1,R2,R3,RN,K1,K2,K3,KN,STORE off
+    class MSG,PICK,H12,CLA,SIG,OUT on
+    class C1 bad
+    class C2,C3 good
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;color:#546e7a;font-size:0.8rem;margin-top:20px;padding:16px;
+            border-top:1px solid #253545;">
+  Blockchain-Based Anonymous Authentication Framework for Healthcare IoT &nbsp;|&nbsp;
+  CBIT Hyderabad &nbsp;|&nbsp; Diagrams rendered with Mermaid.js 10.9
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    themeVariables: {
+      primaryColor:       '#1a4f8a',
+      primaryTextColor:   '#ffffff',
+      primaryBorderColor: '#63b3ed',
+      lineColor:          '#37474f',
+      secondaryColor:     '#e3f2fd',
+      tertiaryColor:      '#f5f5f5',
+      fontFamily:         'Segoe UI, Arial, sans-serif',
+      fontSize:           '14px',
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels:  true,
+      curve:       'basis',
+    },
+    sequence: {
+      useMaxWidth:        true,
+      diagramMarginX:     30,
+      diagramMarginY:     10,
+      actorMargin:        80,
+      width:              160,
+      height:             60,
+      boxMargin:          10,
+      boxTextMargin:      5,
+      noteMargin:         10,
+      messageMargin:      40,
+      mirrorActors:       true,
+      bottomMarginAdj:    2,
+      rightAngles:        false,
+      showSequenceNumbers:true,
+    },
+    securityLevel: 'loose',
+  });
+</script>
+</body>
+</html>

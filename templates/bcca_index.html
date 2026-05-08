@@ -65,40 +65,6 @@
   </div>
 </section>
 
-<!-- System Status -->
-<div class="container mt-4">
-  <div class="alert {% if params_ready %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center">
-    <span class="status-dot {% if params_ready %}dot-green{% else %}dot-red{% endif %} me-2"></span>
-    {% if params_ready %}
-      <strong>System Ready:</strong>&nbsp;HA parameters are initialised. Patients and doctors can register.
-    {% else %}
-      <strong>System Not Initialised:</strong>&nbsp;Hospital Admin must run
-      <a href="/ha/login" class="alert-link">Setup</a> first.
-    {% endif %}
-  </div>
-</div>
-
-<!-- Dual Chain -->
-<div class="container mb-5">
-  <div class="row g-4">
-    <div class="col-md-6">
-      <div class="card feature-card p-4 h-100 border-start border-success border-4">
-        <span class="algo-badge chain-badge-hist mb-2">Historical Chain</span>
-        <h5 class="fw-bold"><i class="fas fa-history text-success me-2"></i>Immutable EHR Audit Log</h5>
-        <p class="text-muted">Stores every verified EHR upload. Non-repudiation for patients and audit compliance (HIPAA / GDPR).</p>
-        <a href="/audit_log" class="btn btn-outline-success btn-sm">View Audit Log</a>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card feature-card p-4 h-100 border-start border-warning border-4">
-        <span class="algo-badge chain-badge-evid mb-2">Evidence Chain</span>
-        <h5 class="fw-bold"><i class="fas fa-gavel text-warning me-2"></i>Modifiable Revocation Evidence</h5>
-        <p class="text-muted">Chameleon Hash allows HA to correct false evidence without creating a new block. Trapdoor known only to HA.</p>
-        <a href="/evidence_chain" class="btn btn-outline-warning btn-sm">View Evidence Chain</a>
-      </div>
-    </div>
-  </div>
-</div>
 
 <footer class="bg-dark text-white text-center py-3">
   <small>Healthcare BCCA</small>

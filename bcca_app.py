@@ -474,6 +474,33 @@ def register():
             _save_persistent_stores()
             _append_audit(pseudo_id, "REGISTER", "", role)
 
+            # ── Console log keys on successful registration ───────────────────
+            print("\n" + "="*60)
+            print(f"  REGISTRATION SUCCESSFUL — {role}")
+            print("="*60)
+            print(f"  RID (Real Identity)  : {rid}")
+            print(f"  Pseudonym (ID_i)     : {pseudo_id}")
+            print(f"  Role                 : {role}")
+            print("-"*60)
+            print(f"  upk_i  (user pubkey) : {full_key['upk_i'][:40]}...")
+            print(f"  gpk_i  (HA pubkey)   : {full_key['gpk_i'][:40]}...")
+            print(f"  E_i    (HA ephemeral): {full_key['E_i'][:40]}...")
+            print(f"  h1_i   (binding hash): {full_key['h1_i']}")
+            print(f"  psk_i  (partial key) : {str(full_key['psk_i'])[:40]}...")
+            print(f"  x_i    (secret key)  : {str(full_key['x_i'])[:40]}...")
+            print(f"  A_i    (login cred1) : {str(full_key['A_i'])[:40]}...")
+            print(f"  B_i    (login cred2) : {str(full_key['B_i'])[:40]}...")
+            print("-"*60)
+            print(f"  Precomputed SID/KID pairs : {len(full_key['SID'])} pairs ready")
+            print(f"  SID[0] (sample)      : {str(full_key['SID'][0])[:40]}...")
+            print(f"  KID[0] (sample)      : {full_key['KID'][0][:40]}...")
+            print(f"  Precomputed Q/ek pairs    : {len(full_key['Q'])} pairs ready")
+            print(f"  Q[0]   (sample)      : {full_key['Q'][0][:40]}...")
+            print(f"  ek[0]  (sample)      : {str(full_key['ek'][0])[:40]}...")
+            if role == "DOCTOR":
+                print(f"  y (decrypt key)      : {str(full_key.get('y','N/A'))[:40]}...")
+            print("="*60 + "\n")
+
             return render_template("bcca_register_result.html",
                                    pseudo_id=pseudo_id, role=role, rid=rid)
         except Exception as e:
@@ -539,6 +566,9 @@ def login():
         try:
             rid      = request.form["rid"]
             password = request.form["password"]
+            dob      = request.form.get("dob", "")
+            sa       = request.form.get("security_answer", "")
+            od       = request.form.get("other_details", "")
 
             # Look up pseudonym by RID (set during registration)
             pseudo_id = _RID_TO_PSEUDO.get(rid)
@@ -555,11 +585,6 @@ def login():
                 stored = _KEY_STORE.get(pseudo_id)
             if stored is None:
                 raise ValueError("Keys not found. Please register again.")
-
-            # Retrieve credentials stored during registration
-            dob = stored.get("dob", "")
-            sa  = stored.get("sa",  "")
-            od  = stored.get("od",  "")
 
             ok = bcca_login(stored, rid, password, dob, sa, od)
             if ok:

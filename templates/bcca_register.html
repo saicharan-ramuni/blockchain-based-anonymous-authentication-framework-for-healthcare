@@ -22,8 +22,7 @@
   <div class="row justify-content-center">
     <div class="col-md-7">
       <div class="card p-5">
-        <h3 class="fw-bold mb-1"><i class="fas fa-user-plus text-primary me-2"></i>Algorithm 2: Registration</h3>
-        <p class="text-muted mb-4">Deterministic multi-factor credentials — no biometric hardware required.</p>
+        <h3 class="fw-bold mb-4"><i class="fas fa-user-plus text-primary me-2"></i>Registration</h3>
 
         {% if error %}
         <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
@@ -93,12 +92,6 @@
             <label class="form-label fw-bold">Medical Registration Number</label>
             <input type="text" class="form-control" name="other_details" id="odDoctorInput"
                    placeholder="e.g., MCI-123456">
-          </div>
-
-          <div class="alert alert-info small">
-            <i class="fas fa-info-circle me-2"></i>
-            All cryptographic steps (Algorithms 2, 3 &amp; 4) run automatically in the background.
-            You will receive your anonymous pseudonym ID instantly.
           </div>
 
           <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
